@@ -46,28 +46,28 @@ jobs:
             ${{ matrix.prefix }}-vulkan-headers
 
       - name: Verify environment
+        shell: msys2 {0}
         run: |
           echo "MSYSTEM=${MSYSTEM}"
           echo "MINGW_PREFIX=${MINGW_PREFIX}"
+          which makepkg-mingw || echo "makepkg-mingw not found"
           pacman -Qi mingw-w64-*-meson | sed -n '1,3p' || true
-        shell: bash
 
       - name: Build package with makepkg-mingw
         working-directory: mingw-w64-dxvk
+        shell: msys2 {0}
         run: |
           set -euo pipefail
           echo "Building PKGBUILD in $(pwd)"
-          # Force rebuild (-f) and produce package in current directory
           makepkg-mingw -f
-        shell: bash
 
       - name: List produced files
+        shell: msys2 {0}
         run: |
           echo "Artifacts in $(pwd)/mingw-w64-dxvk:"
           ls -la mingw-w64-dxvk || true
           echo "Looking for built packages:"
           find . -maxdepth 3 -type f -name '*.pkg.tar.*' -print || true
-        shell: bash
 
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
