@@ -1,4 +1,4 @@
-# Maintainer: Felix Xing (Felixaszx) <felixaszx@outlook.com>
+# Maintainer: Felix Xing (Felixaszx) <felixaszx@outlook.com> edit by jhin
 
 _realname=dxvk
 pkgbase=mingw-w64-${_realname}
