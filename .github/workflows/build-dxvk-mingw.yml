@@ -1,0 +1,79 @@
+name: CI — build mingw package
+
+on:
+  push:
+    paths:
+      - 'mingw-w64-dxvk/**'
+      - '.github/workflows/**'
+  pull_request:
+    paths:
+      - 'mingw-w64-dxvk/**'
+
+jobs:
+  build:
+    name: Build (matrix)
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+          - msystem: CLANG64
+            prefix: mingw-w64-clang-x86_64
+          - msystem: CLANGARM64
+            prefix: mingw-w64-clang-aarch64
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 (${{ matrix.msystem }})
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msystem }}
+          update: true
+          install: |
+            git
+            base-devel
+            ${{ matrix.prefix }}-cc
+            ${{ matrix.prefix }}-meson
+            ${{ matrix.prefix }}-ninja
+            ${{ matrix.prefix }}-glslang
+            ${{ matrix.prefix }}-spirv-headers
+            ${{ matrix.prefix }}-vulkan-headers
+
+      - name: Verify environment
+        run: |
+          echo "MSYSTEM=${MSYSTEM}"
+          echo "MINGW_PREFIX=${MINGW_PREFIX}"
+          pacman -Qi mingw-w64-*-meson | sed -n '1,3p' || true
+        shell: bash
+
+      - name: Build package with makepkg-mingw
+        working-directory: mingw-w64-dxvk
+        run: |
+          set -euo pipefail
+          echo "Building PKGBUILD in $(pwd)"
+          # Force rebuild (-f) and produce package in current directory
+          makepkg-mingw -f
+        shell: bash
+
+      - name: List produced files
+        run: |
+          echo "Artifacts in $(pwd)/mingw-w64-dxvk:"
+          ls -la mingw-w64-dxvk || true
+          echo "Looking for built packages:"
+          find . -maxdepth 3 -type f -name '*.pkg.tar.*' -print || true
+        shell: bash
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dxvk-mingw-${{ matrix.msystem }}
+          path: |
+            mingw-w64-dxvk/*.pkg.tar.*
+            mingw-w64-dxvk/*.zst
+          if-no-files-found: error
